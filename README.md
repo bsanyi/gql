@@ -28,7 +28,7 @@ def deps do
 end
 ```
 
-Please noteice that the Hex package name and the project name are different,
+Please notice that the Hex package name and the project name are different,
 because the package name gql was already taken.
 
 ## Quick Start
@@ -50,8 +50,8 @@ This generates:
 ```graphql
 query contact {
   user {
-    email
     name
+    email
   }
 }
 ```
@@ -401,7 +401,7 @@ GQL.new()
 This generates:
 
 ```graphql
-mutation($id: ID, $key: Integer!, $name: String! = "Joe", $age: Int! = 42) {
+mutation Mutation($id: ID, $key: Integer!, $name: String! = "Joe", $age: Integer! = 42) {
   add_user(name: $name, age: $age, id: $id)
 }
 ```
@@ -429,7 +429,7 @@ Replace variable references with concrete values:
 
 ```elixir
 "query Q($id: ID!) { get(id: $id) { name } }"
-|> GQL.inline_valriables(%{id: 42})
+|> GQL.inline_variables(%{id: 42})
 ```
 
 This generates:
@@ -888,7 +888,7 @@ to_string(doc)
 ### Variables
 - `variable/3` - Add a variable definition
 - `remove_variable/2` - Remove a variable definition
-- `inline_valriables/2` - Replace variables with values
+- `inline_variables/2` - Replace variables with values
 
 ### Fields
 - `field/3` - Add a field

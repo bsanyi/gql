@@ -4,7 +4,7 @@ defmodule GQL.MixProject do
   def project do
     [
       app: :gql,
-      version: "0.2.1",
+      version: "0.2.2",
       elixir: "~> 1.17 or ~> 1.18 or ~> 1.19",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -13,10 +13,14 @@ defmodule GQL.MixProject do
       source_url: "https://github.com/bsanyi/gql",
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
+        cover: :test,
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
+      ],
+      aliases: [
+        cover: "coveralls"
       ],
       docs: [
         main: "readme",
@@ -49,8 +53,9 @@ defmodule GQL.MixProject do
   defp deps do
     [
       {:excoveralls, "~> 0.18.5", only: :test, runtime: false},
-      {:castore, "~> 1.0", only: :test, runtime: false},
+      # {:castore, "~> 1.0", only: :test, runtime: false},
       {:credo, "~> 1.7", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.40.0", only: :dev, runtime: false},
       {:makeup_graphql, ">= 0.0.0", only: :dev, runtime: false},
       {:absinthe, ">= 1.9.0"}

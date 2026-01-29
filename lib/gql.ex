@@ -146,13 +146,12 @@ defmodule GQL do
 
   if Kernel.function_exported?(Absinthe.Sigil, :sigil_GQL, 2) do
     def sigil_GQL(graphql, opts) do
-      case Absinthe.Sigil.sigil_GQL(graphql, opts) do
-        {:error, _} = error -> error
-        str -> parse(str)
-      end
+      graphql
+      |> Absinthe.Sigil.sigil_GQL(opts)
+      |> parse()
     end
   else
-    IO.warn("Please upgrade Absinthe to `>= 1.9.0` in ordert to ~GQL to work.")
+    IO.warn("Please upgrade Absinthe to `>= 1.9.0` in order to ~GQL to work.")
   end
 
   @doc """
@@ -1212,7 +1211,6 @@ defmodule GQL do
         raise ArgumentError,
               "fragment/2 requires either :name and :type options (for named fragments) or :path option (for inline fragments)"
     end
-
   end
 
   @doc """
@@ -1513,7 +1511,7 @@ defmodule GQL do
   Inlines the given variables into the document.
 
       iex> "query Q($id: ID!) { get(id: $id) { name } }"
-      ...> |> #{@gql}.inline_valriables(%{id: 42})
+      ...> |> #{@gql}.inline_variables(%{id: 42})
       ...> |> to_string()
       \"\"\"
       query Q {
@@ -1524,7 +1522,7 @@ defmodule GQL do
       \"\"\"
 
   """
-  def inline_valriables(doc, %{} = args) do
+  def inline_variables(doc, %{} = args) do
     for {variable, value} <- args, reduce: doc do
       doc ->
         doc
