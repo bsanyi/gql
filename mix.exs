@@ -4,7 +4,7 @@ defmodule GQL.MixProject do
   def project do
     [
       app: :gql,
-      version: "0.2.2",
+      version: "0.2.3",
       elixir: "~> 1.17 or ~> 1.18 or ~> 1.19",
       start_permanent: Mix.env() == :prod,
       deps: deps(),

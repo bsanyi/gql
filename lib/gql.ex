@@ -319,10 +319,19 @@ defmodule GQL do
       }
       \"\"\"
 
+  A shorthand query is turned into an explicit operation:
+
+      iex> "{ hello }" |> #{@gql}.type(:mutation) |> to_string()
+      \"\"\"
+      mutation {
+        hello
+      }
+      \"\"\"
+
   """
   def type(doc, type) when is_operation(type) do
     doc = parse(doc)
-    update_operation_definitions(doc, &%{&1 | operation: type})
+    update_operation_definitions(doc, &%{&1 | operation: type, shorthand: false})
   end
 
   @doc """
@@ -335,11 +344,18 @@ defmodule GQL do
       }
       \"\"\"
 
+      iex> "{ hello }" |> #{@gql}.name(:greeting) |> to_string()
+      \"\"\"
+      query greeting {
+        hello
+      }
+      \"\"\"
+
   """
   def name(doc, name) do
     doc = parse(doc)
     name = to_string(name)
-    update_operation_definitions(doc, &%{&1 | name: name})
+    update_operation_definitions(doc, &%{&1 | name: name, shorthand: false})
   end
 
   @doc """
@@ -384,7 +400,8 @@ defmodule GQL do
                         default_value: default
                       }
                     ],
-                name: definition.name || String.capitalize(to_string(definition.operation))
+                name: definition.name || String.capitalize(to_string(definition.operation)),
+                shorthand: false
             }
           end
     }
@@ -926,6 +943,17 @@ defmodule GQL do
       }
       \"\"\"
 
+  Adding a directive to a shorthand query turns it into an explicit query:
+
+      iex> "{ hello }"
+      ...> |> #{@gql}.directive("cached", [])
+      ...> |> to_string()
+      \"\"\"
+      query @cached {
+        hello
+      }
+      \"\"\"
+
   Adding a directive with arguments to the root operation:
 
       iex> #{@gql}.new(field: :user)
@@ -991,9 +1019,11 @@ defmodule GQL do
 
     case path do
       [] ->
-        # Empty path means add directive to the operation itself
+        # Empty path means add directive to the operation itself.
+        # A shorthand query (`{ ... }`) can't carry directives, so it is
+        # turned into an explicit `query @directive { ... }`.
         update_operation_definitions(doc, fn op_def ->
-          %{op_def | directives: (op_def.directives || []) ++ [directive]}
+          %{op_def | directives: (op_def.directives || []) ++ [directive], shorthand: false}
         end)
 
       _ ->
@@ -1698,7 +1728,8 @@ defmodule GQL do
     %{
       base
       | variable_definitions: all_variables,
-        selection_set: %{base.selection_set | selections: all_selections}
+        selection_set: %{base.selection_set | selections: all_selections},
+        shorthand: Enum.all?(definitions, & &1.shorthand)
     }
   end
 
@@ -1933,6 +1964,48 @@ defmodule GQL do
     # Inline fragments are not navigable by field paths, so we can't inject into them
     []
   end
+  @doc """
+  Validates a GQL document against the given Absinthe schema module.
+
+  Returns `:ok` when validation passes, or `{:error, errors}` when the
+  document fails schema validation. The `errors` value is a list of validation
+  errors returned by Absinthe's validation phase.
+
+  ## Examples
+
+      iex> schema = MyApp.Schema
+      iex> doc = GQL.new(field: :user) |> GQL.field(:name, path: [:user])
+      iex> GQL.validate_against(doc, schema)
+      :ok
+
+      iex> schema = MyApp.Schema
+      iex> doc = GQL.new(field: :nonexistent_field)
+      iex> GQL.validate_against(doc, schema)
+      {:error, [...]}
+
+  """
+  def validate_against(doc, schema) do
+    doc = parse(doc)
+    query_string = to_string(doc)
+
+    # Create a pipeline that runs validation but stops before execution
+    pipeline =
+      schema
+      |> Absinthe.Pipeline.for_document()
+      |> Absinthe.Pipeline.upto(Absinthe.Phase.Document.Validation.Result)
+
+    case Absinthe.Pipeline.run(query_string, pipeline) do
+      {:ok, %{errors: []}, _} ->
+        :ok
+
+      {:ok, %{errors: errors}, _} ->
+        {:error, errors}
+
+      {:error, errors, _} ->
+        {:error, errors}
+    end
+  end
+
 end
 
 defimpl String.Chars, for: Document do
